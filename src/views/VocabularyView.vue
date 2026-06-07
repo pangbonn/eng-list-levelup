@@ -12,17 +12,17 @@
           placeholder="ค้นหาคำศัพท์..."
           @input="debounceSearch"
         />
-        <div class="flex gap-2 flex-wrap">
+        <div class="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
           <button
             v-for="level in ['', 'A1', 'A2', 'B1', 'B2', 'C1', 'C2']"
             :key="level"
             @click="filterLevel = level; loadWords()"
-            :class="['px-3 py-1 rounded-full text-xs font-semibold transition-colors', filterLevel === level ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200']"
+            :class="['px-3 py-1 rounded-full text-xs font-semibold transition-colors whitespace-nowrap shrink-0', filterLevel === level ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200']"
           >
             {{ level || 'ทั้งหมด' }}
           </button>
         </div>
-        <div class="flex gap-2">
+        <div class="flex flex-col sm:flex-row gap-2">
           <select v-model="filterCategory" @change="loadWords" class="input-field text-sm">
             <option value="">ทุกหมวด</option>
             <option value="academic">Academic</option>
@@ -56,6 +56,8 @@
               <div class="flex items-center gap-2 mb-1">
                 <span class="font-bold text-gray-900">{{ word.word }}</span>
                 <span class="text-xs text-gray-400">{{ word.part_of_speech }}</span>
+                <span v-if="word.phonetic" class="text-xs text-gray-400 font-mono">{{ word.phonetic }}</span>
+                <button @click.stop="speak(word.word)" class="text-primary-500 hover:text-primary-700 text-sm leading-none" title="ฟังการออกเสียง">🔊</button>
               </div>
               <p class="text-sm text-gray-600 line-clamp-2">{{ word.definition }}</p>
               <p class="text-sm text-blue-500 mt-0.5">{{ word.thai_meaning }}</p>
@@ -81,7 +83,11 @@
           <div class="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg p-6 space-y-4 animate-slide-up max-h-[85vh] overflow-y-auto">
             <div class="flex items-start justify-between">
               <div>
-                <h2 class="text-2xl font-bold text-gray-900">{{ selectedWord.word }}</h2>
+                <div class="flex items-center gap-2">
+                  <h2 class="text-2xl font-bold text-gray-900">{{ selectedWord.word }}</h2>
+                  <button @click="speak(selectedWord.word)" class="text-primary-500 hover:text-primary-700 text-xl" title="ฟังการออกเสียง">🔊</button>
+                </div>
+                <p v-if="selectedWord.phonetic" class="text-gray-400 text-sm font-mono mt-0.5">{{ selectedWord.phonetic }}</p>
                 <div class="flex gap-2 mt-1">
                   <span :class="['text-xs px-2 py-0.5 rounded-full font-semibold', levelToColor(selectedWord.level)]">{{ selectedWord.level }}</span>
                   <span class="text-xs text-gray-400">{{ selectedWord.part_of_speech }}</span>
@@ -129,6 +135,7 @@ import { ref, computed, onMounted } from 'vue'
 import AppLayout from '@/components/AppLayout.vue'
 import { useVocabularyStore } from '@/stores/vocabulary'
 import { levelToColor } from '@/lib/ai'
+import { speak } from '@/lib/speech'
 import type { Word, CEFRLevel, WordCategory } from '@/types'
 
 const vocabStore = useVocabularyStore()

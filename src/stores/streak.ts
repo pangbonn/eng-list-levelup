@@ -25,7 +25,7 @@ export const useStreakStore = defineStore('streak', () => {
       .select('words_studied, quiz_count')
       .eq('user_id', authStore.user.id)
       .eq('activity_date', today)
-      .single()
+      .maybeSingle()
 
     if (todayData) {
       todayWordsStudied.value = todayData.words_studied

@@ -21,6 +21,7 @@ export interface Word {
   part_of_speech: PartOfSpeech
   level: CEFRLevel
   category: WordCategory
+  phonetic?: string
   synonyms?: string[]
   antonyms?: string[]
   frequency: number
@@ -46,7 +47,7 @@ export interface UserWordProgress {
 export interface QuizSession {
   id: string
   user_id: string
-  session_type: 'flashcard' | 'multiple_choice' | 'fill_blank' | 'placement'
+  session_type: 'flashcard' | 'multiple_choice' | 'fill_blank' | 'placement' | 'reverse' | 'cloze' | 'usage'
   total_questions: number
   correct_answers: number
   duration_seconds: number
@@ -56,9 +57,11 @@ export interface QuizSession {
 
 export interface QuizQuestion {
   word: Word
-  type: 'multiple_choice' | 'fill_blank'
+  type: 'multiple_choice' | 'fill_blank' | 'reverse' | 'cloze' | 'usage'
   choices?: string[]
   correct_answer: string
+  sentence?: string
+  isCorrectUsage?: boolean
 }
 
 export interface UserStats {

@@ -5,18 +5,18 @@
       <div class="bg-gradient-to-r from-primary-600 to-indigo-600 rounded-2xl p-6 text-white">
         <h1 class="text-2xl font-bold mb-1">สวัสดี! 👋</h1>
         <p class="text-blue-100 text-sm">{{ greeting }}</p>
-        <div class="mt-4 flex gap-4">
+        <div class="mt-4 grid grid-cols-3 gap-2">
           <div class="text-center">
-            <div class="text-3xl font-bold">{{ stats.words_mastered }}</div>
-            <div class="text-xs text-blue-200">คำที่เชี่ยวชาญ</div>
+            <div class="text-2xl sm:text-3xl font-bold">{{ stats.words_mastered }}</div>
+            <div class="text-xs text-blue-200 leading-tight">คำที่เชี่ยวชาญ</div>
           </div>
           <div class="text-center">
-            <div class="text-3xl font-bold">{{ stats.streak_days }}</div>
-            <div class="text-xs text-blue-200">วันติดต่อกัน 🔥</div>
+            <div class="text-2xl sm:text-3xl font-bold">{{ stats.streak_days }}</div>
+            <div class="text-xs text-blue-200 leading-tight">วันติดต่อกัน 🔥</div>
           </div>
           <div class="text-center">
-            <div class="text-3xl font-bold">{{ Math.round(stats.accuracy_rate * 100) }}%</div>
-            <div class="text-xs text-blue-200">ความแม่นยำ</div>
+            <div class="text-2xl sm:text-3xl font-bold">{{ Math.round(stats.accuracy_rate * 100) }}%</div>
+            <div class="text-xs text-blue-200 leading-tight">ความแม่นยำ</div>
           </div>
         </div>
       </div>
@@ -24,15 +24,15 @@
       <!-- Current Level -->
       <div class="card">
         <h2 class="font-bold text-gray-800 mb-3">ระดับปัจจุบันของคุณ</h2>
-        <div class="flex items-center gap-4">
-          <div :class="['px-4 py-2 rounded-xl font-bold text-lg', levelColor]">
+        <div class="flex items-center gap-3 flex-wrap">
+          <div :class="['px-4 py-2 rounded-xl font-bold text-lg shrink-0', levelColor]">
             {{ stats.current_level }}
           </div>
-          <div>
+          <div class="flex-1 min-w-0">
             <div class="font-semibold text-gray-700">{{ levelToThai(stats.current_level) }}</div>
             <div class="text-xs text-gray-400">{{ dueCount }} คำรอการทบทวน</div>
           </div>
-          <RouterLink to="/quiz?type=placement" class="ml-auto btn-secondary text-sm">
+          <RouterLink to="/quiz?type=placement" class="btn-secondary text-sm shrink-0">
             ทดสอบระดับ
           </RouterLink>
         </div>

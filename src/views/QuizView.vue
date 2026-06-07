@@ -1,17 +1,22 @@
 <template>
   <AppLayout>
     <div class="max-w-lg mx-auto animate-fade-in">
-      <!-- Setup Screen -->
+
+      <!-- ─── Setup ─────────────────────────────────── -->
       <div v-if="phase === 'setup'" class="space-y-4">
         <h1 class="text-xl font-bold text-gray-900">แบบทดสอบ</h1>
         <div class="card space-y-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">ประเภทคำถาม</label>
             <select v-model="quizType" class="input-field">
-              <option value="multiple_choice">เลือกตอบ (Multiple Choice)</option>
-              <option value="fill_blank">เติมคำ (Fill in the Blank)</option>
-              <option value="placement">ทดสอบวัดระดับ (Placement)</option>
+              <option value="multiple_choice">📝 เลือกตอบ (Multiple Choice)</option>
+              <option value="fill_blank">✍️ เติมคำ (Fill in the Blank)</option>
+              <option value="reverse">🔄 ย้อนกลับ (Thai → English)</option>
+              <option value="cloze">📖 เติมในบริบท (Cloze in Context)</option>
+              <option value="usage">⚖️ ตัดสินการใช้คำ (Usage Judgment)</option>
+              <option value="placement">🎯 ทดสอบวัดระดับ (Placement)</option>
             </select>
+            <p class="text-xs text-gray-400 mt-1">{{ quizTypeDescription }}</p>
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">จำนวนคำถาม</label>
@@ -41,53 +46,107 @@
         </div>
       </div>
 
-      <!-- Quiz Screen -->
+      <!-- ─── Quiz ──────────────────────────────────── -->
       <div v-else-if="phase === 'quiz'" class="space-y-4">
-        <!-- Header -->
-        <div class="flex items-center justify-between">
-          <div>
+        <!-- Header / Progress -->
+        <div class="flex items-center justify-between gap-3">
+          <div class="flex-1 min-w-0">
             <p class="text-sm text-gray-400">ข้อ {{ quizStore.currentIndex + 1 }} / {{ quizStore.questions.length }}</p>
-            <div class="h-1.5 w-48 bg-gray-200 rounded-full mt-1 overflow-hidden">
+            <div class="h-1.5 w-full bg-gray-200 rounded-full mt-1 overflow-hidden">
               <div
                 class="h-full bg-primary-500 rounded-full transition-all"
                 :style="{ width: quizProgress + '%' }"
               />
             </div>
           </div>
-          <div class="text-right">
+          <div class="text-right shrink-0">
             <div class="font-bold text-2xl text-gray-900">{{ timerDisplay }}</div>
             <div class="text-xs text-gray-400">เวลา</div>
           </div>
         </div>
 
-        <!-- Question -->
+        <!-- Question Card -->
         <div v-if="currentQuestion" class="card space-y-5">
-          <div>
-            <p class="text-xs text-gray-400 mb-1">คำถาม</p>
-            <h2 class="text-2xl font-bold text-gray-900">{{ currentQuestion.word.word }}</h2>
-            <p class="text-sm text-gray-500 mt-1">{{ currentQuestion.word.part_of_speech }} · {{ currentQuestion.word.level }}</p>
-          </div>
 
-          <p class="text-gray-700 font-medium">คำนี้มีความหมายว่าอะไร?</p>
+          <!-- ── Question display (varies by type) ── -->
 
-          <!-- Multiple Choice -->
-          <div v-if="currentQuestion.type === 'multiple_choice'" class="space-y-2">
+          <!-- Standard: show English word, ask for meaning -->
+          <template v-if="['multiple_choice', 'fill_blank', 'placement'].includes(currentQuestion.type)">
+            <div>
+              <p class="text-xs text-gray-400 mb-1">คำถาม</p>
+              <div class="flex items-center gap-2">
+                <h2 class="text-2xl font-bold text-gray-900">{{ currentQuestion.word.word }}</h2>
+                <button @click="speak(currentQuestion.word.word)" class="text-primary-500 hover:text-primary-700 text-xl" title="ฟังการออกเสียง">🔊</button>
+              </div>
+              <p v-if="currentQuestion.word.phonetic" class="text-gray-400 text-sm font-mono mt-0.5">{{ currentQuestion.word.phonetic }}</p>
+              <p class="text-sm text-gray-500 mt-1">{{ currentQuestion.word.part_of_speech }} · {{ currentQuestion.word.level }}</p>
+            </div>
+            <p class="text-gray-700 font-medium">คำนี้มีความหมายว่าอะไร?</p>
+          </template>
+
+          <!-- Reverse: show Thai meaning + definition, choose English word -->
+          <template v-else-if="currentQuestion.type === 'reverse'">
+            <div>
+              <p class="text-xs text-gray-400 mb-1">🔄 ทายคำศัพท์ภาษาอังกฤษ</p>
+              <p class="text-2xl font-bold text-blue-700 mb-2">{{ currentQuestion.word.thai_meaning }}</p>
+              <p class="text-sm text-gray-600 leading-relaxed bg-gray-50 rounded-xl p-3">{{ currentQuestion.word.definition }}</p>
+              <p class="text-xs text-gray-400 mt-1">{{ currentQuestion.word.part_of_speech }} · {{ currentQuestion.word.level }}</p>
+            </div>
+            <p class="text-gray-700 font-medium">คือคำว่าอะไรในภาษาอังกฤษ?</p>
+          </template>
+
+          <!-- Cloze: sentence with blank, choose word -->
+          <template v-else-if="currentQuestion.type === 'cloze'">
+            <div>
+              <p class="text-xs text-gray-400 mb-2">📖 เติมคำในช่องว่าง</p>
+              <p class="text-gray-800 leading-relaxed bg-indigo-50 border border-indigo-100 rounded-xl p-4 italic text-base">
+                {{ currentQuestion.sentence || currentQuestion.word.example_sentence }}
+              </p>
+              <p class="text-xs text-gray-400 mt-1">{{ currentQuestion.word.part_of_speech }} · {{ currentQuestion.word.level }}</p>
+            </div>
+            <p class="text-gray-700 font-medium">เลือกคำที่เหมาะสมในช่องว่าง</p>
+          </template>
+
+          <!-- Usage Judgment: word + sentence, decide correct/incorrect -->
+          <template v-else-if="currentQuestion.type === 'usage'">
+            <div>
+              <p class="text-xs text-gray-400 mb-1">⚖️ ตัดสินการใช้คำ</p>
+              <div class="flex items-center gap-2">
+                <h2 class="text-2xl font-bold text-gray-900">{{ currentQuestion.word.word }}</h2>
+                <button @click="speak(currentQuestion.word.word)" class="text-primary-500 hover:text-primary-700 text-xl" title="ฟังการออกเสียง">🔊</button>
+              </div>
+              <p v-if="currentQuestion.word.phonetic" class="text-gray-400 text-sm font-mono mt-0.5">{{ currentQuestion.word.phonetic }}</p>
+              <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mt-3">
+                <p class="text-gray-800 italic leading-relaxed">{{ currentQuestion.sentence }}</p>
+              </div>
+            </div>
+            <p class="text-gray-700 font-medium">คำนี้เหมาะกับประโยคข้างต้นไหม?</p>
+          </template>
+
+          <!-- ── Answer section ── -->
+
+          <!-- Button choices (multiple_choice / placement / reverse / cloze) -->
+          <div v-if="['multiple_choice', 'placement', 'reverse', 'cloze'].includes(currentQuestion.type)" class="space-y-2">
             <button
               v-for="(choice, i) in currentQuestion.choices"
               :key="i"
               @click="selectAnswer(choice)"
               :disabled="!!selectedAnswer"
-              :class="[
-                'w-full text-left px-4 py-3 rounded-xl border-2 transition-all text-sm font-medium',
-                getChoiceClass(choice)
-              ]"
+              :class="['w-full text-left px-4 py-3 rounded-xl border-2 transition-all text-sm font-medium', getChoiceClass(choice)]"
             >
               {{ String.fromCharCode(65 + i) }}. {{ choice }}
             </button>
+            <!-- Reveal correct word on wrong answer for reverse/cloze -->
+            <p
+              v-if="selectedAnswer && !isLastCorrect && ['reverse', 'cloze'].includes(currentQuestion.type)"
+              class="text-red-600 text-sm text-center pt-1"
+            >
+              คำตอบที่ถูกต้อง: <strong>{{ currentQuestion.correct_answer }}</strong>
+            </p>
           </div>
 
           <!-- Fill in Blank -->
-          <div v-else class="space-y-3">
+          <div v-else-if="currentQuestion.type === 'fill_blank'" class="space-y-3">
             <input
               v-model="fillAnswer"
               type="text"
@@ -109,18 +168,45 @@
             </div>
           </div>
 
-          <!-- Next Button -->
-          <button
-            v-if="selectedAnswer"
-            @click="nextQuestion"
-            class="btn-primary w-full"
-          >
+          <!-- Usage: binary buttons -->
+          <div v-else-if="currentQuestion.type === 'usage'" class="space-y-3">
+            <div class="flex gap-3">
+              <button
+                @click="selectAnswer('correct')"
+                :disabled="!!selectedAnswer"
+                :class="['flex-1 py-4 rounded-xl border-2 font-semibold text-base transition-all', getChoiceClass('correct')]"
+              >
+                ✅ เหมาะสม
+              </button>
+              <button
+                @click="selectAnswer('incorrect')"
+                :disabled="!!selectedAnswer"
+                :class="['flex-1 py-4 rounded-xl border-2 font-semibold text-base transition-all', getChoiceClass('incorrect')]"
+              >
+                ❌ ไม่เหมาะสม
+              </button>
+            </div>
+            <div
+              v-if="selectedAnswer"
+              :class="['p-3 rounded-xl text-sm font-medium text-center', isLastCorrect ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700']"
+            >
+              <p>{{ isLastCorrect ? '✅ ถูกต้อง!' : '❌ ผิดแล้ว!' }}</p>
+              <p class="text-xs mt-1 opacity-80">
+                {{ currentQuestion.isCorrectUsage
+                  ? `คำว่า "${currentQuestion.word.word}" เหมาะกับประโยคนี้`
+                  : `คำว่า "${currentQuestion.word.word}" ไม่เหมาะกับประโยคนี้` }}
+              </p>
+            </div>
+          </div>
+
+          <!-- Next -->
+          <button v-if="selectedAnswer" @click="nextQuestion" class="btn-primary w-full">
             {{ quizStore.currentIndex + 1 >= quizStore.questions.length ? 'ดูผลลัพธ์' : 'คำถามถัดไป →' }}
           </button>
         </div>
       </div>
 
-      <!-- Result Screen -->
+      <!-- ─── Result ─────────────────────────────────── -->
       <div v-else-if="phase === 'result'" class="space-y-4 text-center animate-slide-up">
         <div class="card py-8">
           <div class="text-6xl mb-4">{{ resultEmoji }}</div>
@@ -129,7 +215,7 @@
             ถูก {{ correctInSession }} / {{ quizStore.questions.length }} ข้อ
           </p>
 
-          <!-- Score -->
+          <!-- Score ring -->
           <div class="w-32 h-32 mx-auto relative mb-6">
             <svg class="w-full h-full -rotate-90" viewBox="0 0 100 100">
               <circle cx="50" cy="50" r="40" fill="none" stroke="#e5e7eb" stroke-width="10"/>
@@ -172,6 +258,7 @@ import { useQuizStore } from '@/stores/quiz'
 import { useStreakStore } from '@/stores/streak'
 import { supabase } from '@/lib/supabase'
 import { levelToColor, levelToThai } from '@/lib/ai'
+import { speak } from '@/lib/speech'
 import type { QuizSession } from '@/types'
 
 const quizStore = useQuizStore()
@@ -179,7 +266,7 @@ const streakStore = useStreakStore()
 
 type Phase = 'setup' | 'quiz' | 'result'
 const phase = ref<Phase>('setup')
-const quizType = ref<'multiple_choice' | 'fill_blank' | 'placement'>('multiple_choice')
+const quizType = ref<QuizSession['session_type']>('multiple_choice')
 const questionCount = ref(10)
 const loading = ref(false)
 const selectedAnswer = ref<string | null>(null)
@@ -190,18 +277,17 @@ const recentSessions = ref<QuizSession[]>([])
 const timerSeconds = ref(0)
 let timerInterval: ReturnType<typeof setInterval> | null = null
 const questionStartTime = ref(Date.now())
-const correctInSession = computed(() =>
-  quizStore.answers.filter((a) => a.isCorrect).length
-)
+
+const correctInSession = computed(() => quizStore.answers.filter((a) => a.isCorrect).length)
 const scorePercent = computed(() =>
   quizStore.questions.length > 0
     ? Math.round((correctInSession.value / quizStore.questions.length) * 100)
-    : 0
+    : 0,
 )
 const quizProgress = computed(() =>
   quizStore.questions.length > 0
-    ? ((quizStore.currentIndex) / quizStore.questions.length) * 100
-    : 0
+    ? (quizStore.currentIndex / quizStore.questions.length) * 100
+    : 0,
 )
 const timerDisplay = computed(() => {
   const m = Math.floor(timerSeconds.value / 60)
@@ -219,12 +305,22 @@ const resultMessage = computed(() => {
   if (scorePercent.value >= 60) return 'ดีมาก ยังพัฒนาได้อีก!'
   return 'อย่าท้อ ฝึกต่อไปนะ!'
 })
+const quizTypeDescription = computed(() => {
+  const map: Partial<Record<QuizSession['session_type'], string>> = {
+    multiple_choice: 'ดูคำศัพท์แล้วเลือกความหมายที่ถูกต้อง',
+    fill_blank: 'ดูคำศัพท์แล้วพิมพ์ความหมายเอง (ยากกว่า)',
+    reverse: 'ดูความหมายภาษาไทยแล้วเลือกคำศัพท์ภาษาอังกฤษ',
+    cloze: 'ดูประโยคที่มีช่องว่างแล้วเลือกคำที่เหมาะสม',
+    usage: 'ตัดสินว่าคำศัพท์ถูกใช้ถูกต้องในประโยคหรือไม่',
+    placement: 'ทดสอบทุกระดับเพื่อประเมินระดับปัจจุบัน',
+  }
+  return map[quizType.value] ?? ''
+})
 
 function getChoiceClass(choice: string): string {
   if (!selectedAnswer.value) return 'border-gray-200 hover:border-primary-400 hover:bg-primary-50'
   if (choice === currentQuestion.value?.correct_answer) return 'border-green-500 bg-green-50 text-green-800'
-  if (choice === selectedAnswer.value && choice !== currentQuestion.value?.correct_answer)
-    return 'border-red-400 bg-red-50 text-red-700'
+  if (choice === selectedAnswer.value) return 'border-red-400 bg-red-50 text-red-700'
   return 'border-gray-200 opacity-50'
 }
 
@@ -252,12 +348,14 @@ async function selectAnswer(choice: string) {
 async function submitFill() {
   if (!fillAnswer.value || selectedAnswer.value) return
   selectedAnswer.value = fillAnswer.value
-  isLastCorrect.value = fillAnswer.value.trim().toLowerCase() === currentQuestion.value?.correct_answer.toLowerCase()
+  isLastCorrect.value =
+    fillAnswer.value.trim().toLowerCase() === currentQuestion.value?.correct_answer.toLowerCase()
   const ms = Date.now() - questionStartTime.value
   await quizStore.submitAnswer(fillAnswer.value, ms)
 }
 
 async function nextQuestion() {
+  quizStore.currentIndex++
   selectedAnswer.value = null
   fillAnswer.value = ''
   questionStartTime.value = Date.now()
@@ -288,7 +386,12 @@ async function loadRecentSessions() {
 }
 
 function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('th-TH', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+  return new Date(dateStr).toLocaleDateString('th-TH', {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
 }
 
 onMounted(loadRecentSessions)

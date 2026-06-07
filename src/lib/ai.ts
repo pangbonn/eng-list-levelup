@@ -1,16 +1,23 @@
 import type { UserStats, AIAnalysis, Word, CEFRLevel } from '@/types'
 
-// Update this to your Supabase Edge Function URL after deployment
-// Format: https://<project-ref>.supabase.co/functions/v1/ai-analyze
-const AI_ENDPOINT = import.meta.env.VITE_AI_ENDPOINT ?? '/api/ai-analyze'
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string
+const AI_ENDPOINT = `${SUPABASE_URL}/functions/v1/ai-analyze`
 
 async function callAI<T>(action: string, payload: unknown): Promise<T> {
   const res = await fetch(AI_ENDPOINT, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      apikey: SUPABASE_ANON_KEY,
+    },
     body: JSON.stringify({ action, payload }),
   })
-  if (!res.ok) throw new Error(`AI ${action} failed: ${res.statusText}`)
+  if (!res.ok) {
+    const body = await res.text().catch(() => '')
+    throw new Error(`AI ${action} failed [${res.status}]: ${body || res.statusText}`)
+  }
   return res.json() as Promise<T>
 }
 
